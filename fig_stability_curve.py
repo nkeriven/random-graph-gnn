@@ -12,7 +12,8 @@ import torch
 import torch.nn.functional as Fc
 
 # My code
-import util as ut
+from utils import surface_uniform, random_graph_similarity, nx2tg, my_draw3d
+from models import MyGCN
 
 plt.close('all')
 
@@ -22,17 +23,17 @@ n = 2000
 fz=lambda x,y:0
 fsig = lambda x:np.cos(9*x[1])
 size_layers = [1,10,10,1]
-GN = ut.MyGCN(size_layers, variant='inv', nonlin=torch.sigmoid)
-taus = np.linspace(0,5,5)
+GN = MyGCN(size_layers, variant='inv', nonlin=torch.sigmoid)
+taus = np.linspace(0,10,5)
 nexp = 20
 
 # base value
 output = np.zeros(nexp)
 for e in range(nexp):
     print('Compute limit value {}/{}'.format(e+1, nexp))
-    X,F = ut.surface_uniform(n, fz=fz)
-    G = ut.random_graph_similarity(X,f=fsig,alpha=1, bandwidth=0.15, mode="Gaussian")
-    D = ut.nx2tg(G, node_attr='node_attr')
+    X,F = surface_uniform(n, fz=fz)
+    G = random_graph_similarity(X,f=fsig,alpha=1, bandwidth=0.15, mode="Gaussian")
+    D = nx2tg(G, node_attr='node_attr')
     output[e] = GN(D.x, D.edge_index)
 
 cont_value = output.mean()
@@ -46,10 +47,10 @@ outputs = np.zeros((nexp,len(taus)))
 for e in range(nexp):
     for _,tau in enumerate(taus):
         print('Evaluate stability {}/{}, {}/{}'.format(_+1, len(taus), e+1, nexp))
-        XX,F = ut.surface_uniform(n, fz=fz)
+        XX,F = surface_uniform(n, fz=fz)
         XX[:,2] = [t(x,tau) for x in XX[:,0]]
-        Gp = ut.random_graph_similarity(XX,f=fsig,alpha=1, bandwidth=0.15, mode="Gaussian")
-        Dp = ut.nx2tg(Gp, node_attr='node_attr')
+        Gp = random_graph_similarity(XX,f=fsig,alpha=1, bandwidth=0.15, mode="Gaussian")
+        Dp = nx2tg(Gp, node_attr='node_attr')
         outputs[e,_] = GN(Dp.x, Dp.edge_index)
 
 output_ = np.abs(outputs-cont_value)
